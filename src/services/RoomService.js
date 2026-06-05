@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/api/v1/rooms";
+import { baseURL } from "../config/AxiosHelper";
+
+const BASE_URL = `${baseURL}/api/v1/rooms`;
 
 
 // CREATE ROOM (FIXED)
