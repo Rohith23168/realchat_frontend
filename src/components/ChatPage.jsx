@@ -312,15 +312,20 @@ const ChatPage = () => {
             ref={chatRef}
             className="flex-1 overflow-y-auto px-3 py-2 pb-24 max-w-4xl mx-auto w-full"
         >
-          {messages.map((msg, index) => (
-              <div
-                  key={index}
-                  className={`p-3 rounded-xl mb-3 max-w-md w-fit ${
-                      msg.sender === currentUser
-                          ? "bg-green-700 ml-auto"
-                          : "bg-gray-800"
-                  }`}
-              >
+          {messages.map((msg, index) => {
+
+            console.log("Timestamp from backend:", msg.timeStamp);
+
+            return (
+                <div
+                    key={index}
+                    className={`p-3 rounded-xl mb-3 max-w-md w-fit ${
+                        msg.sender === currentUser
+                            ? "bg-green-700 ml-auto"
+                            : "bg-gray-800"
+                    }`}
+                >
+
                 <div className="flex justify-between items-center">
                   <div className="font-bold">
                     {msg.sender}
@@ -380,7 +385,9 @@ const ChatPage = () => {
                       : ""}
                 </div>
               </div>
-          ))}
+            );
+          })}
+
         </div>
 
         {/* IMAGE PREVIEW */}
