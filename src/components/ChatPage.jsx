@@ -5,7 +5,7 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import EmojiPicker from "emoji-picker-react";
 import useChatContext from "../context/ChatContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { baseURL } from "../config/AxiosHelper";
 import { getMessagess } from "../services/RoomService";
 import { uploadImage } from "../services/FileService";
@@ -67,6 +67,9 @@ const ChatPage = () => {
 
   // WebSocket
   useEffect(() => {
+    console.log("CHAT PAGE LOADED");
+    console.log("CONNECTED:", connected);
+    console.log("ROOM:", roomId);
     if (!connected || !roomId) return;
 
     const socket = new SockJS(
@@ -241,7 +244,8 @@ const ChatPage = () => {
   };
 
   const sendMessage = async () => {
-    console.log("SEND BUTTON CLICKED");
+    console.log("SEND MESSAGE FUNCTION CALLED");
+
     const client = stompClient.current;
 
     if (!client || !client.connected) {
@@ -521,7 +525,10 @@ const ChatPage = () => {
                   )}
 
             <button
-                onClick={sendMessage}
+                onClick={() => {
+                  console.log("SEND BUTTON CLICKED");
+                  sendMessage();
+                }}
                 className="p-2 rounded-full bg-green-600"
             >
               <MdSend />

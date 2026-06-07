@@ -3,7 +3,7 @@ import chatIcon from "../assets/chat.png";
 import toast from "react-hot-toast";
 import { createRoomApi, joinChatApi } from "../services/RoomService";
 import useChatContext from "../context/ChatContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const JoinCreateChat = () => {
   const [detail, setDetail] = useState({
