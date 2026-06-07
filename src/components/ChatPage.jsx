@@ -346,7 +346,7 @@ const ChatPage = () => {
         {/* CHAT AREA */}
         <div
             ref={chatRef}
-            className="flex-1 overflow-y-auto px-3 py-2 pb-24 max-w-4xl mx-auto w-full"
+            className="flex-1 overflow-y-auto px-3 py-2 pb-40 max-w-4xl mx-auto w-full"
         >
           {messages.map((msg, index) => {
 
@@ -452,8 +452,8 @@ const ChatPage = () => {
         )}
 
         {/* INPUT BAR */}
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700">
-          <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-2">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
+          <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-2 h-16">
 
             <input
                 type="file"
@@ -490,7 +490,7 @@ const ChatPage = () => {
                   🎙
                 </button>
             ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-[90px]">
         <span className="text-red-400">
           {recordingTime}s
         </span>
