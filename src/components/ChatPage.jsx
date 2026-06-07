@@ -121,17 +121,15 @@ const ChatPage = () => {
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
 
-    setFiles(selectedFiles);
+    setFiles(selectedFiles); // keep state for UI
 
-    // CLEAN OLD URL FIRST
     setInput("");
-    setFiles([]);
 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
-    setPreviewUrl(null);
 
+    setPreviewUrl(null);
     setAudioBlob(null);
     setRecordingTime(0);
 
@@ -263,18 +261,24 @@ const ChatPage = () => {
       console.log("Uploading file...");
       console.log(files);
 
-      // 1. Upload images
-      for (let f of files) {
-        const res = await uploadImage(f);
+      // 1. LOCK FILES AT SEND TIME (IMPORTANT FIX)
+      const fileSnapshot = Array.from(files); // safer than spread in some cases
 
-        const url =
-            res?.imageUrl ||
-            res?.data?.imageUrl ||
-            res;
+      if (fileSnapshot.length > 0) {
+        for (const f of fileSnapshot) {
+          console.log("Uploading:", f); // DEBUG
 
-        console.log("Uploaded URL:", url);
+          const res = await uploadImage(f);
 
-        imageUrls.push(url);
+          const url =
+              res?.imageUrl ||
+              res?.data?.imageUrl ||
+              res;
+
+          console.log("Uploaded URL:", url);
+
+          imageUrls.push(url);
+        }
       }
 
       console.log("Final imageUrls:", imageUrls);
