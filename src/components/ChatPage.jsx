@@ -362,7 +362,7 @@ const ChatPage = () => {
         {/* CHAT AREA */}
         <div
             ref={chatRef}
-            className="flex-1 overflow-y-auto px-3 py-2 pb-56 max-w-4xl mx-auto w-full"
+            className="flex-1 overflow-y-auto p-4 pb-24 w-full"
         >
           {messages.map((msg, index) => {
 
@@ -371,12 +371,13 @@ const ChatPage = () => {
             return (
                 <div
                     key={msg.id || index}
-                    className={`p-3 rounded-xl mb-3 max-w-md w-fit ${
+                    className={`p-3 rounded-xl mb-3 max-w-[70%] ${
                         msg.sender === currentUser
-                            ? "bg-green-700 ml-auto"
+                            ? "bg-green-700"
                             : "bg-gray-800"
                     }`}
                 >
+
 
                   <div className="flex justify-between items-center">
                     <div className="font-bold">
@@ -405,7 +406,7 @@ const ChatPage = () => {
                       <img
                           src={msg.imageUrl}
                           alt="chat"
-                          className="mt-2 rounded max-w-xs"
+                          className="mt-2 rounded max-w-md w-full"
                       />
                   )}
 
@@ -468,35 +469,33 @@ const ChatPage = () => {
               )}
 
               {/* INPUT BAR */}
-              <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
-                <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-3 h-16">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
+          <div className="w-full flex items-center gap-2 px-4 py-3">
 
-                  <input
-                      type="file"
-                      hidden
-                      ref={inputRef}
-                      onChange={handleFileChange}
-                  />
+            <input
+                type="file"
+                hidden
+                ref={inputRef}
+                onChange={handleFileChange}
+            />
 
-                  <button
-                      onClick={() => inputRef.current?.click()}
-                      className="p-2 hover:bg-gray-700 rounded-full"
-                  >
-                    <FiPaperclip size={20} />
-                  </button>
+            <button
+                onClick={() => inputRef.current?.click()}
+                className="p-2 hover:bg-gray-700 rounded-full"
+            >
+              <FiPaperclip size={20} />
+            </button>
 
-                  <input
-                      type="text"
-                      value={input}
-                      placeholder="Type message..."
-                      onChange={(e) => setInput(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-full bg-gray-700 outline-none text-sm"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          sendMessage();
-                        }
-                      }}
-                  />
+            <input
+                type="text"
+                value={input}
+                placeholder="Type message..."
+                onChange={(e) => setInput(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-full bg-gray-700 outline-none text-sm"
+            />
+
+
+
 
                   {!recording ? (
                       <button
