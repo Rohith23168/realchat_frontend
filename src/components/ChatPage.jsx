@@ -22,51 +22,40 @@ const ChatPage = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(null);
-
-
-  // NEW
   const [recordingTime, setRecordingTime] = useState(0);
-
 
   const stompClient = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunks = useRef([]);
-
   const chatRef = useRef(null);
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Redirect
+  // redirect
   useEffect(() => {
-    if (!connected) {
-      navigate("/");
-    }
+    if (!connected) navigate("/");
   }, [connected, navigate]);
 
-  // Load Messages
+  // load messages
   useEffect(() => {
     const loadMessages = async () => {
       try {
         const data = await getMessagess(roomId);
         setMessages(data || []);
-      } catch (error) {
-        console.error("LOAD ERROR:", error);
+      } catch (e) {
+        console.error(e);
       }
     };
 
-    if (connected && roomId) {
-      loadMessages();
-    }
+    if (connected && roomId) loadMessages();
   }, [connected, roomId]);
 
-  // WebSocket
+  // websocket
   useEffect(() => {
     if (!connected || !roomId) return;
 
-    const socket = new SockJS(
-        `${import.meta.env.VITE_BACKEND_URL}/chat`
-    );
+    const socket = new SockJS(`${import.meta.env.VITE_BACKEND_URL}/chat`);
 
     const client = new Client({
       webSocketFactory: () => socket,
@@ -75,26 +64,19 @@ const ChatPage = () => {
     });
 
     client.onConnect = () => {
-      console.log("WEBSOCKET CONNECTED");
-
       client.subscribe(`/topic/room/${roomId}`, (message) => {
-        const receivedMessage = JSON.parse(message.body);
-
-        console.log("RECEIVED:", receivedMessage);
-
-        setMessages((prev) => [...prev, receivedMessage]);
+        const received = JSON.parse(message.body);
+        setMessages((prev) => [...prev, received]);
       });
     };
 
     client.activate();
     stompClient.current = client;
 
-    return () => {
-      client.deactivate();
-    };
+    return () => client.deactivate();
   }, [roomId, connected]);
 
-  // Auto Scroll
+  // auto scroll
   useEffect(() => {
     chatRef.current?.scrollTo({
       top: chatRef.current.scrollHeight,
@@ -102,394 +84,203 @@ const ChatPage = () => {
     });
   }, [messages]);
 
-  // File Select
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-
-    console.log("SELECTED FILES:", selectedFiles);
-
-    setFiles(selectedFiles);
+    setFiles(Array.from(e.target.files));
   };
 
-  // Voice Start
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunks.current = [];
+    mediaRecorderRef.current = new MediaRecorder(stream);
+    audioChunks.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunks.current.push(event.data);
-      };
+    mediaRecorderRef.current.ondataavailable = (e) => {
+      audioChunks.current.push(e.data);
+    };
 
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunks.current, {
-          type: "audio/webm",
-        });
+    mediaRecorderRef.current.onstop = () => {
+      const blob = new Blob(audioChunks.current, { type: "audio/webm" });
+      setAudioBlob(blob);
+    };
 
-        setAudioBlob(blob);
-      };
+    mediaRecorderRef.current.start();
+    setRecording(true);
 
-      mediaRecorderRef.current.start();
-
-      setRecording(true);
-      setRecordingTime(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-
-    } catch (error) {
-      console.error(error);
-    }
+    timerRef.current = setInterval(() => {
+      setRecordingTime((p) => p + 1);
+    }, 1000);
   };
 
-  // Voice Stop
   const stopRecording = () => {
     mediaRecorderRef.current.stop();
-
     setRecording(false);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    clearInterval(timerRef.current);
   };
 
-  // Delete Message
-  const deleteMessage = async (id) => {
-    try {
-      await fetch(`${baseURL}/api/v1/messages/${id}`, {
-        method: "DELETE",
+  const sendMessage = async () => {
+    const client = stompClient.current;
+    if (!client?.connected) return;
+
+    let imageUrls = [];
+    let audioUrl = "";
+
+    for (let f of files) {
+      const url = await uploadImage(f);
+      imageUrls.push(url);
+    }
+
+    if (audioBlob) {
+      const file = new File([audioBlob], "voice.webm", {
+        type: "audio/webm",
       });
 
-      setMessages((prev) =>
-          prev.filter((m) => m.id !== id)
-      );
-    } catch (error) {
-      console.error(error);
+      audioUrl = await uploadImage(file);
     }
+
+    if (!input.trim() && imageUrls.length === 0 && !audioUrl) return;
+
+    const message = {
+      sender: currentUser,
+      content: input,
+      roomId,
+      imageUrl: imageUrls[0] || null,
+      audioUrl: audioUrl || null,
+    };
+
+    client.publish({
+      destination: "/app/sendMessage",
+      body: JSON.stringify(message),
+    });
+
+    setInput("");
+    setFiles([]);
+    setAudioBlob(null);
+    setRecordingTime(0);
   };
 
-  // Send Message
   const playVoice = (url, id) => {
-
-    if (
-        audioRef.current &&
-        playingAudio === id
-    ) {
+    if (audioRef.current && playingAudio === id) {
       audioRef.current.pause();
       setPlayingAudio(null);
       return;
     }
 
     const audio = new Audio(url);
-
     audioRef.current = audio;
     setPlayingAudio(id);
 
     audio.play();
 
-    audio.onended = () => {
-      setPlayingAudio(null);
-    };
+    audio.onended = () => setPlayingAudio(null);
   };
 
-  const leaveRoom = () => {
-    if (stompClient.current) {
-      stompClient.current.deactivate();
-    }
+  const deleteMessage = async (id) => {
+    await fetch(`${baseURL}/api/v1/messages/${id}`, {
+      method: "DELETE",
+    });
 
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    navigate("/");
-  };
-
-  const sendMessage = async () => {
-    const client = stompClient.current;
-
-    if (!client || !client.connected) {
-      console.log("WEBSOCKET NOT CONNECTED");
-      return;
-    }
-
-    try {
-      let imageUrls = [];
-      let audioUrl = "";
-
-      console.log("Uploading file...");
-      console.log(files);
-
-      for (let f of files) {
-        const url = await uploadImage(f);
-
-        console.log("Uploaded URL:", url);
-
-        imageUrls.push(url);
-      }
-
-      console.log("Final imageUrls:", imageUrls);
-
-      if (audioBlob) {
-        const file = new File(
-            [audioBlob],
-            "voice.webm",
-            {
-              type: "audio/webm",
-            }
-        );
-
-        audioUrl = await uploadImage(file);
-
-        console.log("Voice URL:", audioUrl);
-      }
-
-      if (
-          !input.trim() &&
-          imageUrls.length === 0 &&
-          !audioUrl
-      ) {
-        return;
-      }
-
-      const message = {
-        sender: currentUser,
-        content: input,
-        roomId: roomId,
-        imageUrl:
-            imageUrls.length > 0
-                ? imageUrls[0]
-                : null,
-        audioUrl: audioUrl || null,
-      };
-
-      console.log("Sending Message:", message);
-
-      client.publish({
-        destination: "/app/sendMessage",
-        body: JSON.stringify(message),
-      });
-
-      setInput("");
-      setFiles([]);
-      setAudioBlob(null);
-      setRecordingTime(0);
-
-    } catch (err) {
-      console.log("SEND ERROR:", err);
-    }
+    setMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
   return (
       <div className="flex flex-col h-screen bg-black text-white">
 
         {/* HEADER */}
-        <div className="bg-gray-900 p-3 flex justify-between items-center border-b border-gray-700">
+        <div className="bg-gray-900 p-3 flex justify-between">
           <div>
-            <h2 className="font-bold text-lg">
-              Room: {roomId}
-            </h2>
-
-            <p className="text-xs text-gray-400">
-              User: {currentUser}
-            </p>
+            <h2>Room: {roomId}</h2>
+            <p>User: {currentUser}</p>
           </div>
-
-          <button
-              onClick={leaveRoom}
-              className="bg-red-600 px-4 py-2 rounded text-sm"
-          >
-            Leave Room
-          </button>
         </div>
 
-        {/* CHAT AREA */}
-        <div
-            ref={chatRef}
-            className="flex-1 overflow-y-auto px-3 py-2 pb-24 max-w-4xl mx-auto w-full"
-        >
-          {messages.map((msg, index) => {
+        {/* CHAT */}
+        <div ref={chatRef} className="flex-1 overflow-y-auto p-3 pb-24">
 
-            console.log("Timestamp from backend:", msg.timeStamp);
-
-            return (
-                <div
-                    key={index}
-                    className={`p-3 rounded-xl mb-3 max-w-md w-fit ${
-                        msg.sender === currentUser
-                            ? "bg-green-700 ml-auto"
-                            : "bg-gray-800"
-                    }`}
-                >
-
-                <div className="flex justify-between items-center">
-                  <div className="font-bold">
-                    {msg.sender}
-                  </div>
-
-                  <button
-                      className="text-red-400 text-sm"
-                      onClick={() => deleteMessage(msg.id)}
-                  >
-                    Delete
-                  </button>
+          {messages.map((msg, index) => (
+              <div
+                  key={msg.id || index}
+                  className={`p-3 mb-3 rounded max-w-md ${
+                      msg.sender === currentUser ? "bg-green-700 ml-auto" : "bg-gray-800"
+                  }`}
+              >
+                <div className="flex justify-between">
+                  <b>{msg.sender}</b>
+                  <button onClick={() => deleteMessage(msg.id)}>Delete</button>
                 </div>
 
-                <div className="mt-1">
-                  {msg.content}
-                </div>
+                <div>{msg.content}</div>
 
-                {msg.imageUrl && (
+                {(msg.imageUrl || msg.fileUrl) && (
                     <img
-                        src={msg.imageUrl}
-                        alt="chat"
-                        className="mt-2 rounded max-w-xs"
+                        src={msg.imageUrl || msg.fileUrl}
+                        className="mt-2 max-w-xs rounded"
                     />
                 )}
 
-                {msg.audioUrl && (
-                    <div className="mt-2 bg-green-700 rounded-xl p-3 flex items-center gap-3 max-w-sm">
-
-                      <button
-                          onClick={() =>
-                              playVoice(
-                                  msg.audioUrl,
-                                  msg.id
-                              )
-                          }
-                          className="bg-white text-black rounded-full w-10 h-10"
-                      >
-                        {playingAudio === msg.id
-                            ? "⏸"
-                            : "▶"}
-                      </button>
-
-                      <div className="flex-1">
-                        <div className="h-1 bg-green-300 rounded" />
-                      </div>
-
-                      <span className="text-xs">
-      Voice Message
-    </span>
-
-                    </div>
+                {(msg.audioUrl || msg.fileUrl) && (
+                    <audio controls className="mt-2">
+                      <source src={msg.audioUrl || msg.fileUrl} />
+                    </audio>
                 )}
 
-                <div className="text-xs text-gray-400 mt-2">
-                  {msg.timeStamp
-                      ? timeAgo(msg.timeStamp)
-                      : ""}
+                {msg.audioUrl && (
+                    <button onClick={() => playVoice(msg.audioUrl, msg.id)}>
+                      {playingAudio === msg.id ? "⏸" : "▶"} Voice
+                    </button>
+                )}
+
+                <div className="text-xs text-gray-400">
+                  {msg.timeStamp ? timeAgo(msg.timeStamp) : ""}
                 </div>
               </div>
-            );
-          })}
+          ))}
 
         </div>
 
-        {/* IMAGE PREVIEW */}
-        {files.length > 0 && (
-            <div className="p-2 bg-gray-800">
-              <img
-                  src={URL.createObjectURL(files[0])}
-                  alt="preview"
-                  className="max-w-xs rounded"
-              />
-            </div>
-        )}
+        {/* INPUT */}
+        <div className="fixed bottom-0 w-full bg-gray-900 p-2 flex gap-2">
 
-        {/* VOICE PREVIEW */}
+          <input type="file" hidden ref={inputRef} onChange={handleFileChange} />
+
+          <button onClick={() => inputRef.current.click()}>
+            📎
+          </button>
+
+          <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="flex-1 bg-gray-700 px-3 rounded"
+          />
+
+          {!recording ? (
+              <button onClick={startRecording}>🎤</button>
+          ) : (
+              <button onClick={stopRecording}>
+                <MdStop />
+              </button>
+          )}
+
+          <button onClick={sendMessage}>
+            <MdSend />
+          </button>
+
+          <button onClick={() => setShowEmoji(!showEmoji)}>
+            😊
+          </button>
+        </div>
+
         {audioBlob && (
             <div className="p-2 bg-gray-800">
-              🎤 Voice Recorded ({recordingTime}s)
+              Voice: {recordingTime}s
             </div>
         )}
 
-        {/* INPUT BAR */}
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700">
-          <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-2">
-
-            <input
-                type="file"
-                hidden
-                ref={inputRef}
-                onChange={handleFileChange}
-            />
-
-            <button
-                onClick={() => inputRef.current?.click()}
-                className="p-2 hover:bg-gray-700 rounded-full"
-            >
-              <FiPaperclip size={20} />
-            </button>
-
-            <input
-                type="text"
-                value={input}
-                placeholder="Type message..."
-                onChange={(e) => setInput(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-full bg-gray-700 outline-none text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    sendMessage();
-                  }
-                }}
-            />
-
-            {!recording ? (
-                <button
-                    onClick={startRecording}
-                    className="p-2 rounded-full bg-gray-700"
-                >
-                  🎙
-                </button>
-            ) : (
-                <div className="flex items-center gap-2">
-        <span className="text-red-400">
-          {recordingTime}s
-        </span>
-
-                  <button
-                      onClick={stopRecording}
-                      className="p-2 rounded-full bg-red-600"
-                  >
-                    <MdStop />
-                  </button>
-                </div>
-            )}
-
-            <button
-                onClick={sendMessage}
-                className="p-2 rounded-full bg-green-600"
-            >
-              <MdSend />
-            </button>
-
-            <button
-                onClick={() => setShowEmoji(!showEmoji)}
-                className="p-2 rounded-full bg-gray-700"
-            >
-              😊
-            </button>
-
-          </div>
-        </div>
-
-        {/* EMOJI PICKER */}
         {showEmoji && (
-            <div className="fixed bottom-16 w-full">
-              <EmojiPicker
-                  onEmojiClick={(emojiData) =>
-                      setInput(
-                          (prev) =>
-                              prev + emojiData.emoji
-                      )
-                  }
-              />
-            </div>
+            <EmojiPicker
+                onEmojiClick={(e) =>
+                    setInput((prev) => prev + e.emoji)
+                }
+            />
         )}
       </div>
   );
