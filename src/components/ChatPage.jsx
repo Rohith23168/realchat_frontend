@@ -241,6 +241,7 @@ const ChatPage = () => {
   };
 
   const sendMessage = async () => {
+    console.log("SEND BUTTON CLICKED");
     const client = stompClient.current;
 
     if (!client || !client.connected) {
@@ -519,12 +520,12 @@ const ChatPage = () => {
                       </div>
                   )}
 
-                  <button
-                      onClick={sendMessage}
-                      className="p-2 rounded-full bg-green-600"
-                  >
-                    <MdSend />
-                  </button>
+            <button
+                onClick={sendMessage}
+                className="p-2 rounded-full bg-green-600"
+            >
+              <MdSend />
+            </button>
 
                   <button
                       onClick={() => setShowEmoji(!showEmoji)}
