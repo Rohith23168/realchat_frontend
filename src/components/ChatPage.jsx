@@ -18,8 +18,13 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState([]);
+
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
+
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
   const [showEmoji, setShowEmoji] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(null);
 
@@ -102,14 +107,28 @@ const ChatPage = () => {
     });
   }, [messages]);
 
+  useEffect(() => {
+    const currentUrl = previewUrl;
+
+    return () => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [previewUrl]);
+
   // File Select
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
 
-    console.log("SELECTED FILES:", selectedFiles);
-
     setFiles(selectedFiles);
-  };
+
+    if (selectedFiles.length > 0) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+      const url = URL.createObjectURL(selectedFiles[0]);
+      setPreviewUrl(url);
+    } }
 
   // Voice Start
   const startRecording = async () => {
@@ -131,6 +150,9 @@ const ChatPage = () => {
         });
 
         setAudioBlob(blob);
+
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
       };
 
       mediaRecorderRef.current.start();
@@ -252,10 +274,16 @@ const ChatPage = () => {
           type: "audio/webm",
         });
 
-        audioUrl = await uploadImage(file);
+        const res = await uploadImage(file);
 
-        console.log("Voice URL:", audioUrl);
+        audioUrl =
+            res?.imageUrl ||
+            res?.data?.imageUrl ||
+            res;
       }
+
+
+
 
       // 3. Validation
       if (!input.trim() && imageUrls.length === 0 && !audioUrl) {
@@ -341,7 +369,13 @@ const ChatPage = () => {
 
                   <button
                       className="text-red-400 text-sm"
-                      onClick={() => deleteMessage(msg.id)}
+                      onClick={() => {
+                        if (!msg.id) {
+                          console.log("NO MESSAGE ID:", msg);
+                          return;
+                        }
+                        deleteMessage(msg.id);
+                      }}
                   >
                     Delete
                   </button>
@@ -399,10 +433,10 @@ const ChatPage = () => {
         </div>
 
         {/* IMAGE PREVIEW */}
-        {files.length > 0 && (
+        {previewUrl && (
             <div className="p-2 bg-gray-800">
               <img
-                  src={URL.createObjectURL(files[0])}
+                  src={previewUrl}
                   alt="preview"
                   className="max-w-xs rounded"
               />
@@ -410,9 +444,10 @@ const ChatPage = () => {
         )}
 
         {/* VOICE PREVIEW */}
-        {audioBlob && (
-            <div className="p-2 bg-gray-800">
-              🎤 Voice Recorded ({recordingTime}s)
+        {audioUrl && (
+            <div className="p-2 bg-gray-800 flex items-center gap-3">
+              <audio controls src={audioUrl}></audio>
+              🎤 {recordingTime}s
             </div>
         )}
 
