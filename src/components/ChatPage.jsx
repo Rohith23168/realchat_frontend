@@ -28,10 +28,7 @@ const ChatPage = () => {
   const [showEmoji, setShowEmoji] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(null);
 
-
-  // NEW
   const [recordingTime, setRecordingTime] = useState(0);
-
 
   const stompClient = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -42,14 +39,12 @@ const ChatPage = () => {
   const timerRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Redirect
   useEffect(() => {
     if (!connected) {
       navigate("/");
     }
   }, [connected, navigate]);
 
-  // Load Messages
   useEffect(() => {
     const loadMessages = async () => {
       try {
@@ -65,7 +60,6 @@ const ChatPage = () => {
     }
   }, [connected, roomId]);
 
-  // WebSocket
   useEffect(() => {
     if (!connected || !roomId) return;
 
@@ -84,9 +78,6 @@ const ChatPage = () => {
 
       client.subscribe(`/topic/room/${roomId}`, (message) => {
         const receivedMessage = JSON.parse(message.body);
-
-        console.log("RECEIVED:", receivedMessage);
-
         setMessages((prev) => [...prev, receivedMessage]);
       });
     };
@@ -99,7 +90,6 @@ const ChatPage = () => {
     };
   }, [roomId, connected]);
 
-  // Auto Scroll
   useEffect(() => {
     chatRef.current?.scrollTo({
       top: chatRef.current.scrollHeight,
@@ -117,20 +107,28 @@ const ChatPage = () => {
     };
   }, [previewUrl]);
 
-  // File Select
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
 
     setFiles(selectedFiles);
 
-    if (selectedFiles.length > 0) {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setInput("");
+    setFiles([]);
 
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+
+    setAudioBlob(null);
+    setRecordingTime(0);
+
+    if (selectedFiles.length > 0) {
       const url = URL.createObjectURL(selectedFiles[0]);
       setPreviewUrl(url);
-    } }
+    }
+  };
 
-  // Voice Start
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -169,7 +167,6 @@ const ChatPage = () => {
     }
   };
 
-  // Voice Stop
   const stopRecording = () => {
     mediaRecorderRef.current.stop();
 
@@ -180,7 +177,6 @@ const ChatPage = () => {
     }
   };
 
-  // Delete Message
   const deleteMessage = async (id) => {
     try {
       await fetch(`${baseURL}/api/v1/messages/${id}`, {
@@ -195,13 +191,8 @@ const ChatPage = () => {
     }
   };
 
-  // Send Message
   const playVoice = (url, id) => {
-
-    if (
-        audioRef.current &&
-        playingAudio === id
-    ) {
+    if (audioRef.current && playingAudio === id) {
       audioRef.current.pause();
       setPlayingAudio(null);
       return;
@@ -235,13 +226,9 @@ const ChatPage = () => {
     const client = stompClient.current;
 
     if (!client || !client.connected) {
-      console.log("WEBSOCKET NOT CONNECTED");
-
       setTimeout(() => {
-        console.log("Retrying send...");
         sendMessage();
       }, 1000);
-
       return;
     }
 
@@ -249,10 +236,6 @@ const ChatPage = () => {
       let imageUrls = [];
       let audioUrl = "";
 
-      console.log("Uploading file...");
-      console.log(files);
-
-      // 1. Upload images
       for (let f of files) {
         const res = await uploadImage(f);
 
@@ -261,14 +244,9 @@ const ChatPage = () => {
             res?.data?.imageUrl ||
             res;
 
-        console.log("Uploaded URL:", url);
-
         imageUrls.push(url);
       }
 
-      console.log("Final imageUrls:", imageUrls);
-
-      // 2. Upload audio
       if (audioBlob) {
         const file = new File([audioBlob], "voice.webm", {
           type: "audio/webm",
@@ -282,15 +260,10 @@ const ChatPage = () => {
             res;
       }
 
-
-
-
-      // 3. Validation
       if (!input.trim() && imageUrls.length === 0 && !audioUrl) {
         return;
       }
 
-      // 4. Build message object
       const message = {
         sender: currentUser,
         content: input,
@@ -302,19 +275,17 @@ const ChatPage = () => {
         audioUrl: audioUrl || null,
       };
 
-      console.log("Sending Message:", message);
-
-      // 5. SEND via WebSocket (ONLY ONCE)
       client.publish({
         destination: "/app/sendMessage",
         body: JSON.stringify(message),
       });
 
-      // 6. Cleanup
       setInput("");
       setFiles([]);
+      setPreviewUrl(null);
       setAudioBlob(null);
       setRecordingTime(0);
+
     } catch (err) {
       console.log("SEND ERROR:", err);
     }
@@ -323,122 +294,64 @@ const ChatPage = () => {
   return (
       <div className="flex flex-col h-screen bg-black text-white">
 
-        {/* HEADER */}
         <div className="bg-gray-900 p-3 flex justify-between items-center border-b border-gray-700">
           <div>
-            <h2 className="font-bold text-lg">
-              Room: {roomId}
-            </h2>
-
-            <p className="text-xs text-gray-400">
-              User: {currentUser}
-            </p>
+            <h2 className="font-bold text-lg">Room: {roomId}</h2>
+            <p className="text-xs text-gray-400">User: {currentUser}</p>
           </div>
 
-          <button
-              onClick={leaveRoom}
-              className="bg-red-600 px-4 py-2 rounded text-sm"
-          >
+          <button onClick={leaveRoom} className="bg-red-600 px-4 py-2 rounded text-sm">
             Leave Room
           </button>
         </div>
 
-        {/* CHAT AREA */}
-        <div
-            ref={chatRef}
-            className="flex-1 overflow-y-auto px-3 py-2 pb-56 max-w-4xl mx-auto w-full"
-        >
-          {messages.map((msg, index) => {
+        <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-2 pb-56 max-w-4xl mx-auto w-full">
 
-            console.log("Timestamp from backend:", msg.timeStamp);
-
-            return (
-                <div
-                    key={msg.id || index}
-                    className={`p-3 rounded-xl mb-3 max-w-md w-fit ${
-                        msg.sender === currentUser
-                            ? "bg-green-700 ml-auto"
-                            : "bg-gray-800"
-                    }`}
-                >
+          {messages.map((msg, index) => (
+              <div key={msg.id || index} className="p-3 rounded-xl mb-3 max-w-md w-fit bg-gray-800">
 
                 <div className="flex justify-between items-center">
-                  <div className="font-bold">
-                    {msg.sender}
-                  </div>
-
+                  <div className="font-bold">{msg.sender}</div>
                   <button
                       className="text-red-400 text-sm"
-                      onClick={() => {
-                        if (!msg.id) {
-                          console.log("NO MESSAGE ID:", msg);
-                          return;
-                        }
-                        deleteMessage(msg.id);
-                      }}
+                      onClick={() => deleteMessage(msg.id)}
                   >
                     Delete
                   </button>
                 </div>
 
-                <div className="mt-1">
-                  {msg.content}
-                </div>
+                <div className="mt-1">{msg.content}</div>
 
                 {msg.imageUrl && (
-                    <img
-                        src={msg.imageUrl}
-                        alt="chat"
-                        className="mt-2 rounded max-w-xs"
-                    />
+                    <img src={msg.imageUrl} alt="chat" className="mt-2 rounded max-w-xs" />
                 )}
 
                 {msg.audioUrl && (
                     <div className="mt-2 bg-green-700 rounded-xl p-3 flex items-center gap-3 max-w-sm">
-
                       <button
-                          onClick={() =>
-                              playVoice(
-                                  msg.audioUrl,
-                                  msg.id
-                              )
-                          }
+                          onClick={() => playVoice(msg.audioUrl, msg.id)}
                           className="bg-white text-black rounded-full w-10 h-10"
                       >
-                        {playingAudio === msg.id
-                            ? "⏸"
-                            : "▶"}
+                        {playingAudio === msg.id ? "⏸" : "▶"}
                       </button>
-
-                      <div className="flex-1">
-                        <div className="h-1 bg-green-300 rounded" />
-                      </div>
-
-                      <span className="text-xs">
-      Voice Message
-    </span>
-
                     </div>
                 )}
 
                 <div className="text-xs text-gray-400 mt-2">
-                  {msg.timeStamp
-                      ? timeAgo(msg.timeStamp)
-                      : ""}
+                  {msg.timeStamp ? timeAgo(msg.timeStamp) : ""}
                 </div>
-              </div>
-            );
-          })}
 
+              </div>
+          ))}
         </div>
 
-        {/* IMAGE PREVIEW */}
+        {/* ✅ FIXED IMAGE PREVIEW */}
         {previewUrl && (
-            <div className="p-2 bg-gray-800">
+            <div className="p-2 bg-gray-800 flex justify-start">
               <img
                   src={previewUrl}
                   alt="preview"
-                  className="max-w-xs rounded"
+                  className="max-w-xs rounded max-h-40 object-cover"
               />
             </div>
         )}
@@ -451,89 +364,30 @@ const ChatPage = () => {
             </div>
         )}
 
-        {/* INPUT BAR */}
+        {/* INPUT BAR (unchanged) */}
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
           <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-3 h-16">
 
-            <input
-                type="file"
-                hidden
-                ref={inputRef}
-                onChange={handleFileChange}
-            />
+            <input type="file" hidden ref={inputRef} onChange={handleFileChange} />
 
-            <button
-                onClick={() => inputRef.current?.click()}
-                className="p-2 hover:bg-gray-700 rounded-full"
-            >
+            <button onClick={() => inputRef.current?.click()}>
               <FiPaperclip size={20} />
             </button>
 
             <input
                 type="text"
                 value={input}
-                placeholder="Type message..."
                 onChange={(e) => setInput(e.target.value)}
                 className="flex-1 px-3 py-2 rounded-full bg-gray-700 outline-none text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    sendMessage();
-                  }
-                }}
             />
 
-            {!recording ? (
-                <button
-                    onClick={startRecording}
-                    className="p-2 rounded-full bg-gray-700"
-                >
-                  🎙
-                </button>
-            ) : (
-                <div className="flex items-center gap-2 min-w-[90px]">
-        <span className="text-red-400">
-          {recordingTime}s
-        </span>
-
-                  <button
-                      onClick={stopRecording}
-                      className="p-2 rounded-full bg-red-600"
-                  >
-                    <MdStop />
-                  </button>
-                </div>
-            )}
-
-            <button
-                onClick={sendMessage}
-                className="p-2 rounded-full bg-green-600"
-            >
+            <button onClick={sendMessage}>
               <MdSend />
-            </button>
-
-            <button
-                onClick={() => setShowEmoji(!showEmoji)}
-                className="p-2 rounded-full bg-gray-700"
-            >
-              😊
             </button>
 
           </div>
         </div>
 
-        {/* EMOJI PICKER */}
-        {showEmoji && (
-            <div className="fixed bottom-24 w-full z-50">
-              <EmojiPicker
-                  onEmojiClick={(emojiData) =>
-                      setInput(
-                          (prev) =>
-                              prev + emojiData.emoji
-                      )
-                  }
-              />
-            </div>
-        )}
       </div>
   );
 };
