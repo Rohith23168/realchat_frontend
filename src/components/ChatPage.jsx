@@ -214,6 +214,12 @@ const ChatPage = () => {
 
     if (!client || !client.connected) {
       console.log("WEBSOCKET NOT CONNECTED");
+
+      setTimeout(() => {
+        console.log("Retrying send...");
+        sendMessage();
+      }, 1000);
+
       return;
     }
 
