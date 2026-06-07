@@ -230,6 +230,7 @@ const ChatPage = () => {
       console.log("Uploading file...");
       console.log(files);
 
+      // 1. Upload images
       for (let f of files) {
         const res = await uploadImage(f);
 
@@ -245,51 +246,47 @@ const ChatPage = () => {
 
       console.log("Final imageUrls:", imageUrls);
 
+      // 2. Upload audio
       if (audioBlob) {
-        const file = new File(
-            [audioBlob],
-            "voice.webm",
-            {
-              type: "audio/webm",
-            }
-        );
+        const file = new File([audioBlob], "voice.webm", {
+          type: "audio/webm",
+        });
 
         audioUrl = await uploadImage(file);
 
         console.log("Voice URL:", audioUrl);
       }
 
-      if (
-          !input.trim() &&
-          imageUrls.length === 0 &&
-          !audioUrl
-      ) {
+      // 3. Validation
+      if (!input.trim() && imageUrls.length === 0 && !audioUrl) {
         return;
       }
 
+      // 4. Build message object
       const message = {
         sender: currentUser,
         content: input,
         roomId: roomId,
         imageUrl:
-      imageUrls.length > 0 && typeof imageUrls[0] === "string"
-          ? imageUrls[0]
-          : null,
+            imageUrls.length > 0 && typeof imageUrls[0] === "string"
+                ? imageUrls[0]
+                : null,
         audioUrl: audioUrl || null,
       };
 
       console.log("Sending Message:", message);
 
+      // 5. SEND via WebSocket (ONLY ONCE)
       client.publish({
         destination: "/app/sendMessage",
         body: JSON.stringify(message),
       });
 
+      // 6. Cleanup
       setInput("");
       setFiles([]);
       setAudioBlob(null);
       setRecordingTime(0);
-
     } catch (err) {
       console.log("SEND ERROR:", err);
     }
