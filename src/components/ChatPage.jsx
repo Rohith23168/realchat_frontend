@@ -346,7 +346,7 @@ const ChatPage = () => {
         {/* CHAT AREA */}
         <div
             ref={chatRef}
-            className="flex-1 overflow-y-auto px-3 py-2 pb-40 max-w-4xl mx-auto w-full"
+            className="flex-1 overflow-y-auto px-3 py-2 pb-56 max-w-4xl mx-auto w-full"
         >
           {messages.map((msg, index) => {
 
@@ -453,7 +453,7 @@ const ChatPage = () => {
 
         {/* INPUT BAR */}
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
-          <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-2 h-16">
+          <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-3 h-16">
 
             <input
                 type="file"
@@ -523,7 +523,7 @@ const ChatPage = () => {
 
         {/* EMOJI PICKER */}
         {showEmoji && (
-            <div className="fixed bottom-16 w-full">
+            <div className="fixed bottom-24 w-full z-50">
               <EmojiPicker
                   onEmojiClick={(emojiData) =>
                       setInput(
