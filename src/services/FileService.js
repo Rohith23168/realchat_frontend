@@ -1,6 +1,6 @@
-import { baseURL } from "../config/AxiosHelper.js";
+import { baseURL } from "../config/AxiosHelper";
 
-const uploadImage = async (file) => {
+export const uploadImage = async (file) => {
     try {
         const formData = new FormData();
         formData.append("file", file);
@@ -14,13 +14,11 @@ const uploadImage = async (file) => {
             throw new Error("Upload failed");
         }
 
-        const imageUrl = await res.text(); // backend returns plain string
-        return imageUrl.trim();
+        const text = await res.text();
+        return text;
 
-    } catch (error) {
-        console.error("Upload error:", error);
+    } catch (err) {
+        console.error("UPLOAD ERROR:", err);
         return null;
     }
 };
-
-export default uploadImage;
