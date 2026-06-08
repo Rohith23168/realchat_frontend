@@ -5,7 +5,7 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import EmojiPicker from "emoji-picker-react";
 import useChatContext from "../context/ChatContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { baseURL } from "../config/AxiosHelper";
 import { getMessagess } from "../services/RoomService";
 import { uploadImage } from "../services/FileService";
@@ -67,9 +67,6 @@ const ChatPage = () => {
 
   // WebSocket
   useEffect(() => {
-    console.log("CHAT PAGE LOADED");
-    console.log("CONNECTED:", connected);
-    console.log("ROOM:", roomId);
     if (!connected || !roomId) return;
 
     const socket = new SockJS(
@@ -244,8 +241,6 @@ const ChatPage = () => {
   };
 
   const sendMessage = async () => {
-    console.log("SEND MESSAGE FUNCTION CALLED");
-
     const client = stompClient.current;
 
     if (!client || !client.connected) {
@@ -367,7 +362,7 @@ const ChatPage = () => {
         {/* CHAT AREA */}
         <div
             ref={chatRef}
-            className="flex-1 overflow-y-auto p-4 pb-24 w-full"
+            className="flex-1 overflow-y-auto px-3 py-2 pb-56 w-full"
         >
           {messages.map((msg, index) => {
 
@@ -376,13 +371,12 @@ const ChatPage = () => {
             return (
                 <div
                     key={msg.id || index}
-                    className={`p-3 rounded-xl mb-3 max-w-[70%] ${
+                    className={`p-3 rounded-xl mb-3 max-w-md w-fit ${
                         msg.sender === currentUser
-                            ? "bg-green-700"
+                            ? "bg-green-700 ml-auto"
                             : "bg-gray-800"
                     }`}
                 >
-
 
                   <div className="flex justify-between items-center">
                     <div className="font-bold">
@@ -411,7 +405,7 @@ const ChatPage = () => {
                       <img
                           src={msg.imageUrl}
                           alt="chat"
-                          className="mt-2 rounded max-w-md w-full"
+                          className="mt-2 rounded max-w-xs"
                       />
                   )}
 
@@ -474,33 +468,35 @@ const ChatPage = () => {
               )}
 
               {/* INPUT BAR */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
-          <div className="w-full flex items-center gap-2 px-4 py-3">
+              <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
+                <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
 
-            <input
-                type="file"
-                hidden
-                ref={inputRef}
-                onChange={handleFileChange}
-            />
+                  <input
+                      type="file"
+                      hidden
+                      ref={inputRef}
+                      onChange={handleFileChange}
+                  />
 
-            <button
-                onClick={() => inputRef.current?.click()}
-                className="p-2 hover:bg-gray-700 rounded-full"
-            >
-              <FiPaperclip size={20} />
-            </button>
+                  <button
+                      onClick={() => inputRef.current?.click()}
+                      className="p-2 hover:bg-gray-700 rounded-full"
+                  >
+                    <FiPaperclip size={20} />
+                  </button>
 
-            <input
-                type="text"
-                value={input}
-                placeholder="Type message..."
-                onChange={(e) => setInput(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-full bg-gray-700 outline-none text-sm"
-            />
-
-
-
+                  <input
+                      type="text"
+                      value={input}
+                      placeholder="Type message..."
+                      onChange={(e) => setInput(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-full bg-gray-700 outline-none text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          sendMessage();
+                        }
+                      }}
+                  />
 
                   {!recording ? (
                       <button
@@ -524,15 +520,12 @@ const ChatPage = () => {
                       </div>
                   )}
 
-            <button
-                onClick={() => {
-                  console.log("SEND BUTTON CLICKED");
-                  sendMessage();
-                }}
-                className="p-2 rounded-full bg-green-600"
-            >
-              <MdSend />
-            </button>
+                  <button
+                      onClick={sendMessage}
+                      className="p-2 rounded-full bg-green-600"
+                  >
+                    <MdSend />
+                  </button>
 
                   <button
                       onClick={() => setShowEmoji(!showEmoji)}
