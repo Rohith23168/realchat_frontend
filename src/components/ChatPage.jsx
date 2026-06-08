@@ -5,7 +5,7 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import EmojiPicker from "emoji-picker-react";
 import useChatContext from "../context/ChatContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { baseURL } from "../config/AxiosHelper";
 import { getMessagess } from "../services/RoomService";
 import { uploadImage } from "../services/FileService";
@@ -241,6 +241,12 @@ const ChatPage = () => {
   };
 
   const sendMessage = async () => {
+
+    console.log("SEND BUTTON CLICKED");
+
+    console.log("INPUT:", input);
+    console.log("CLIENT:", stompClient.current);
+    console.log("CONNECTED:", stompClient.current?.connected);
     const client = stompClient.current;
 
     if (!client || !client.connected) {
@@ -468,9 +474,7 @@ const ChatPage = () => {
               )}
 
               {/* INPUT BAR */}
-              <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
-                <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700">
-
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 flex items-center gap-2 p-2">
                   <input
                       type="file"
                       hidden
@@ -535,7 +539,7 @@ const ChatPage = () => {
                   </button>
 
                 </div>
-              </div>
+
 
               {/* EMOJI PICKER */}
               {showEmoji && (
